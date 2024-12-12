@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Incrementer</title>
+    <title>Incrementer with Custom Steps</title>
 </head>
 <body>
-    <textarea id="textBox" rows="10" cols="50" placeholder="Enter values like @0num3@, @hex1anum4cap@, or @binary0num4@"></textarea><br>
+    <textarea id="textBox" rows="10" cols="50" placeholder="For example: @0num3@, @hexFFnum4increment-1cap@, @binary101num4increment2@"></textarea><br>
 
     <label>Start Character: <input type="text" id="startChar" placeholder="Enter start character" maxlength="1" value="@"></label><br>
     <label>End Character: <input type="text" id="endChar" placeholder="Enter end character" maxlength="1" value="@"></label><br>
     <label>Increment Count: <input type="number" id="incrementsCount" placeholder="Number of increments" value="5"></label><br>
-    <label>Increment Step: <input type="number" id="incrementStep" placeholder="Increment step" value="1"></label><br>
+    <label>Global Increment Step: <input type="number" id="incrementStep" placeholder="Increment step" value="1"></label><br>
     <label><input type="checkbox" id="reverseNegative"> Reverse order if negative increments</label><br>
 
     <button onclick="myFunction()">Submit</button>
@@ -28,8 +28,9 @@
         while ((match = regex.exec(text)) !== null) {
             let extractedValue = match[1];
             let base = 10; // Default base is decimal
-            let paddingLength = 0; // Default padding length is 0
+            let paddingLength = 0; // Default padding length
             let uppercaseHex = false; // Only apply uppercase if 'cap' is found for hex
+            let customIncrementStep = null; // If found, overrides global increment step
 
             extractedValue = extractedValue.trim().toLowerCase();
 
@@ -46,7 +47,7 @@
 
                 if (extractedValue.startsWith('convert')) {
                     extractedValue = extractedValue.slice(7).trim();
-                    extractedValue = parseInt(extractedValue).toString(16);
+                    extractedValue = parseInt(extractedValue, 10).toString(16);
                 }
             } else if (extractedValue.startsWith('binary')) {
                 base = 2;
@@ -61,22 +62,38 @@
                 paddingLength = parseInt(paddingMatch[2], 10);
             }
 
+            // Check for custom increment step
+            let incrementMatch = initialValue.match(/(.*)increment([+-]?\d+)/);
+            if (incrementMatch) {
+                initialValue = incrementMatch[1].trim();
+                customIncrementStep = parseInt(incrementMatch[2], 10);
+            }
+
             // If initialValue is empty, default to '0'
             if (!initialValue) {
                 initialValue = '0';
             }
 
-            matches.push({ value: initialValue, base: base, padding: paddingLength, uppercaseHex: uppercaseHex });
+            matches.push({ 
+                value: initialValue, 
+                base: base, 
+                padding: paddingLength, 
+                uppercaseHex: uppercaseHex,
+                customIncrementStep: customIncrementStep
+            });
         }
         return matches;
     };
 
-    const incrementValue = (values, incrementsCount, incrementStep, reverseNegative) => {
+    const incrementValue = (values, incrementsCount, globalIncrementStep, reverseNegative) => {
         let result = [];
 
         values.forEach(item => {
-            let { value, base, padding, uppercaseHex } = item;
+            let { value, base, padding, uppercaseHex, customIncrementStep } = item;
             let incrementedValues = [];
+
+            // Use custom increment step if available, otherwise global
+            let incrementStep = customIncrementStep !== null ? customIncrementStep : globalIncrementStep;
 
             // Parse the initial value with the correct base
             let initialValue = parseInt(value, base);
@@ -143,7 +160,7 @@
         const startChar = document.getElementById("startChar").value.trim();
         const endChar = document.getElementById("endChar").value.trim();
         const incrementsCount = parseInt(document.getElementById("incrementsCount").value, 10);
-        const incrementStep = parseInt(document.getElementById("incrementStep").value, 10);
+        const globalIncrementStep = parseInt(document.getElementById("incrementStep").value, 10);
         const reverseNegative = document.getElementById("reverseNegative").checked;
 
         if (!startChar || !endChar) {
@@ -158,7 +175,7 @@
             return;
         }
 
-        const increments = incrementValue(values, incrementsCount, incrementStep, reverseNegative);
+        const increments = incrementValue(values, incrementsCount, globalIncrementStep, reverseNegative);
         output.innerHTML = printSentenceWithIncrements(originalText, increments, startChar, endChar);
     }
     </script>
