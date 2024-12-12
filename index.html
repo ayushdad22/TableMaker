@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Incrementer with Custom Steps</title>
+    <title>Incrementer with Custom Steps and Proper Negative Padding</title>
 </head>
 <body>
-    <textarea id="textBox" rows="10" cols="50" placeholder="For example: @0num3@, @hexFFnum4increment-1cap@, @binary101num4increment2@"></textarea><br>
+    <textarea id="textBox" rows="10" cols="50" placeholder="For example: @0num3increment-1@, @hexFFnum4increment-1cap@, @binary101num4increment2@"></textarea><br>
 
     <label>Start Character: <input type="text" id="startChar" placeholder="Enter start character" maxlength="1" value="@"></label><br>
     <label>End Character: <input type="text" id="endChar" placeholder="Enter end character" maxlength="1" value="@"></label><br>
@@ -26,13 +26,11 @@
         let match;
 
         while ((match = regex.exec(text)) !== null) {
-            let extractedValue = match[1].trim();
-            let base = 10; // Default base is decimal
+            let extractedValue = match[1].trim().toLowerCase();
+            let base = 10; 
             let paddingLength = 0; 
             let uppercaseHex = false; 
             let customIncrementStep = null;
-
-            extractedValue = extractedValue.toLowerCase();
 
             // Determine base
             if (extractedValue.startsWith('hex')) {
@@ -52,14 +50,12 @@
             // Check for 'convert'
             if (extractedValue.startsWith('convert')) {
                 extractedValue = extractedValue.slice(7).trim();
-                // convert from decimal to current base
                 let decimalVal = parseInt(extractedValue, 10);
                 if (isNaN(decimalVal)) decimalVal = 0;
                 extractedValue = decimalVal.toString(base);
             }
 
             // Extract increment step if present
-            // increment pattern: increment-1 or increment2 etc.
             let incrementMatch = extractedValue.match(/increment([+-]?\d+)/);
             if (incrementMatch) {
                 customIncrementStep = parseInt(incrementMatch[1], 10);
@@ -104,12 +100,23 @@
 
             for (let i = 0; i <= incrementsCount; i++) {
                 let incrementedValue = initialValue + i * incrementStep;
-                let formattedValue = incrementedValue.toString(base);
 
+                // Handle sign and absolute value separately
+                const isNegative = incrementedValue < 0;
+                let absValue = Math.abs(incrementedValue);
+                let formattedValue = absValue.toString(base);
+
+                // Pad with leading zeros if padding is specified
                 if (padding > 0) {
                     formattedValue = formattedValue.padStart(padding, '0');
                 }
 
+                // Re-attach the minus sign if negative
+                if (isNegative) {
+                    formattedValue = '-' + formattedValue;
+                }
+
+                // If base is hex and 'cap' was specified, convert to uppercase
                 if (base === 16 && uppercaseHex) {
                     formattedValue = formattedValue.toUpperCase();
                 }
@@ -182,3 +189,4 @@
     </script>
 </body>
 </html>
+
