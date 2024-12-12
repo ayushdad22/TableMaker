@@ -26,50 +26,55 @@
         let match;
 
         while ((match = regex.exec(text)) !== null) {
-            let extractedValue = match[1];
+            let extractedValue = match[1].trim();
             let base = 10; // Default base is decimal
-            let paddingLength = 0; // Default padding length
-            let uppercaseHex = false; // Only apply uppercase if 'cap' is found for hex
-            let customIncrementStep = null; // If found, overrides global increment step
+            let paddingLength = 0; 
+            let uppercaseHex = false; 
+            let customIncrementStep = null;
 
-            extractedValue = extractedValue.trim().toLowerCase();
+            extractedValue = extractedValue.toLowerCase();
 
-            // Determine the base and strip the base identifier
+            // Determine base
             if (extractedValue.startsWith('hex')) {
                 base = 16;
                 extractedValue = extractedValue.slice(3).trim();
-
-                // Check for 'cap' at the end for uppercase hex
-                if (extractedValue.endsWith('cap')) {
-                    uppercaseHex = true;
-                    extractedValue = extractedValue.slice(0, -3).trim();
-                }
-
-                if (extractedValue.startsWith('convert')) {
-                    extractedValue = extractedValue.slice(7).trim();
-                    extractedValue = parseInt(extractedValue, 10).toString(16);
-                }
             } else if (extractedValue.startsWith('binary')) {
                 base = 2;
                 extractedValue = extractedValue.slice(6).trim();
             }
 
-            // Extract padding length if specified
-            let paddingMatch = extractedValue.match(/(.*)num(\d+)/);
-            let initialValue = extractedValue;
-            if (paddingMatch) {
-                initialValue = paddingMatch[1].trim();
-                paddingLength = parseInt(paddingMatch[2], 10);
+            // Check for 'cap'
+            if (extractedValue.endsWith('cap')) {
+                uppercaseHex = true;
+                extractedValue = extractedValue.slice(0, -3).trim();
             }
 
-            // Check for custom increment step
-            let incrementMatch = initialValue.match(/(.*)increment([+-]?\d+)/);
+            // Check for 'convert'
+            if (extractedValue.startsWith('convert')) {
+                extractedValue = extractedValue.slice(7).trim();
+                // convert from decimal to current base
+                let decimalVal = parseInt(extractedValue, 10);
+                if (isNaN(decimalVal)) decimalVal = 0;
+                extractedValue = decimalVal.toString(base);
+            }
+
+            // Extract increment step if present
+            // increment pattern: increment-1 or increment2 etc.
+            let incrementMatch = extractedValue.match(/increment([+-]?\d+)/);
             if (incrementMatch) {
-                initialValue = incrementMatch[1].trim();
-                customIncrementStep = parseInt(incrementMatch[2], 10);
+                customIncrementStep = parseInt(incrementMatch[1], 10);
+                extractedValue = extractedValue.replace(/increment[+-]?\d+/, '').trim();
             }
 
-            // If initialValue is empty, default to '0'
+            // Extract padding if present (numX)
+            let paddingMatch = extractedValue.match(/num(\d+)/);
+            if (paddingMatch) {
+                paddingLength = parseInt(paddingMatch[1], 10);
+                extractedValue = extractedValue.replace(/num\d+/, '').trim();
+            }
+
+            // Whatever remains should be the initial value
+            let initialValue = extractedValue;
             if (!initialValue) {
                 initialValue = '0';
             }
@@ -92,23 +97,19 @@
             let { value, base, padding, uppercaseHex, customIncrementStep } = item;
             let incrementedValues = [];
 
-            // Use custom increment step if available, otherwise global
             let incrementStep = customIncrementStep !== null ? customIncrementStep : globalIncrementStep;
 
-            // Parse the initial value with the correct base
             let initialValue = parseInt(value, base);
+            if (isNaN(initialValue)) initialValue = 0;
 
-            // Generate increments
             for (let i = 0; i <= incrementsCount; i++) {
                 let incrementedValue = initialValue + i * incrementStep;
                 let formattedValue = incrementedValue.toString(base);
 
-                // Pad with leading zeros if padding is specified
                 if (padding > 0) {
                     formattedValue = formattedValue.padStart(padding, '0');
                 }
 
-                // If base is hex and 'cap' was specified, convert to uppercase
                 if (base === 16 && uppercaseHex) {
                     formattedValue = formattedValue.toUpperCase();
                 }
